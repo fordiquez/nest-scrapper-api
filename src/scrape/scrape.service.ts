@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
-import cheerio from 'cheerio';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Scrape } from './scrape.entity';
+import axios from "axios";
+import cheerio from "cheerio";
 
 @Injectable()
-export class AppService {
-
+export class ScrapeService {
   private url = 'https://onlineradiobox.com';
-  public radioStations = [];
 
-  async getData(country) {
-    console.log(country);
+  constructor(@InjectRepository(Scrape) private readonly scrapeRepository: Repository<Scrape>) {}
+
+  async create(country) {
     const { data } = await axios.get(this.url + `/${country}`);
     const $ = cheerio.load(data);
     const stationsList = $('.stations-list .stations__station');
@@ -28,32 +30,38 @@ export class AppService {
       station.title = radioLink.children('.station__title__name').text();
       station.url += radioLink.attr('href');
       station.imgUrl += radioLink.children('.station__title__logo').attr('src');
-      this.promise(station)
-    });
+      this.response(station).then(res => {
+        const scrape = new Scrape();
+        scrape.radioId = res.id;
+        scrape.title = res.title;
+        scrape.url = res.url;
+        scrape.imgUrl = res.imgUrl;
+        scrape.website = res.website;
+        scrape.tags = JSON.stringify(res.tags);
+        scrape.country = res.country;
+        console.log(scrape);
+        this.scrapeRepository.save(scrape);
+      })
+    })
   }
 
-  async promise(station) {
-    const list = [];
-    const promise = new Promise((resolve): any => {
-      this.getRadioStation(station.url).then((response) => {
+  async response(radioStation) {
+    return new Promise((resolve): any => {
+      this.parseRadioStation(radioStation.url).then((response) => {
         resolve(response)
       })
     }).then((response) => {
       Object.entries(response).forEach(entry => {
         const [key, value] = entry;
-        if (key === 'website') station.website = value;
-        else if (key === 'country') station.country = value;
-        else value.forEach(tag => station.tags.push(tag));
+        if (key === 'website') radioStation.website = value;
+        else if (key === 'country') radioStation.country = value;
+        else value.forEach(tag => radioStation.tags.push(tag));
       });
-      list.push(station);
-      return list;
-    })
-    promise.then(res => {
-      console.log(res);
+      return radioStation
     })
   }
 
-  async getRadioStation(url): Promise<object> {
+  async parseRadioStation(url): Promise<object> {
     const { data } = await axios.get(url);
     const $ = cheerio.load(data);
     const radioStationData = $('.station');
