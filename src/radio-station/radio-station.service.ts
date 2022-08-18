@@ -1,15 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Scrape } from './scrape.entity';
+import { ArrayContainedBy, ArrayContains, ArrayOverlap, In, Like, Repository } from "typeorm";
+import { RadioStation } from './radio-station.entity';
 import axios from "axios";
 import cheerio from "cheerio";
 
 @Injectable()
-export class ScrapeService {
+export class RadioStationService {
   private url = 'https://onlineradiobox.com';
 
-  constructor(@InjectRepository(Scrape) private readonly scrapeRepository: Repository<Scrape>) {}
+  constructor(@InjectRepository(RadioStation) private readonly radioStationRepository: Repository<RadioStation>) {}
+
+  async getByRadioId(radioId: number): Promise<RadioStation> {
+    return this.radioStationRepository.findOneBy({ radioId });
+  }
+
+  async getByTags(tags: string): Promise<RadioStation[]> {
+    const splitTags = tags.split(',');
+    let parsedTags = '';
+    splitTags.forEach((splitTag, index) => {
+      if (index !== 0) parsedTags += ',';
+      parsedTags += `"${splitTag}"`
+    })
+    console.log(parsedTags);
+    return this.radioStationRepository.findBy({
+      tags: Like(`%${tags}%`)
+    })
+  }
 
   async create(country) {
     const { data } = await axios.get(this.url + `/${country}`);
@@ -31,16 +48,16 @@ export class ScrapeService {
       station.url += radioLink.attr('href');
       station.imgUrl += radioLink.children('.station__title__logo').attr('src');
       this.response(station).then(res => {
-        const scrape = new Scrape();
-        scrape.radioId = res.id;
-        scrape.title = res.title;
-        scrape.url = res.url;
-        scrape.imgUrl = res.imgUrl;
-        scrape.website = res.website;
-        scrape.tags = JSON.stringify(res.tags);
-        scrape.country = res.country;
-        console.log(scrape);
-        this.scrapeRepository.save(scrape);
+        const radioStation = new RadioStation();
+        radioStation.radioId = res.id;
+        radioStation.title = res.title;
+        radioStation.url = res.url;
+        radioStation.imgUrl = res.imgUrl;
+        radioStation.website = res.website;
+        radioStation.tags = res.tags;
+        radioStation.country = res.country;
+        console.log(radioStation);
+        this.radioStationRepository.save(radioStation);
       })
     })
   }

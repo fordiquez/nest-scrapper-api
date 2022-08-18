@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class Scrape {
+export class RadioStation {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -20,8 +20,8 @@ export class Scrape {
   @Column()
   website: string;
 
-  @Column()
-  tags: string;
+  @Column('simple-array')
+  tags: string[];
 
   @Column()
   country: string;

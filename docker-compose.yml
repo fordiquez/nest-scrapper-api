@@ -1,36 +1,17 @@
 version: "3.7"
 
 services:
-  mysql:
-    container_name: mysql
-    image: mysql:latest
-    networks:
-      - my-network
-    ports:
-      - "${MYSQL_PORT}:${MYSQL_PORT}"
-    volumes:
-      - db-data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-
   phpmyadmin:
     container_name: phpMyAdmin
     image: phpmyadmin/phpmyadmin:latest
     networks:
       - my-network
-    links:
-      - mysql:mysql
     ports:
       - "${PHPMYADMIN_HOST_PORT}:${PHPMYADMIN_CONTAINER_PORT}"
     environment:
-      PMA_HOST: mysql
-      PMA_PORT: ${MYSQL_PORT}
-      PMA_USER: ${MYSQL_ROOT_USER}
-      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    depends_on:
-      - mysql
+      PMA_HOST: ${MYSQL_HOST}
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
 
 networks:
   my-network:
