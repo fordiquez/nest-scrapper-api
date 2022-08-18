@@ -4,6 +4,7 @@ import { Like, Repository } from 'typeorm';
 import { RadioStation } from './radio-station.entity';
 import axios from 'axios';
 import cheerio from 'cheerio';
+import { CreateRadioStationDto } from './dto/create-radio-station.dto';
 
 @Injectable()
 export class RadioStationService {
@@ -31,7 +32,7 @@ export class RadioStationService {
     });
   }
 
-  async create(country) {
+  async create(country: CreateRadioStationDto) {
     const { data } = await axios.get(this.url + `/${country}`);
     const $ = cheerio.load(data);
     const stationsList = $('.stations-list .stations__station');
@@ -65,7 +66,7 @@ export class RadioStationService {
     });
   }
 
-  async response(radioStation) {
+  async response(radioStation: any) {
     return new Promise((resolve): any => {
       this.parseRadioStation(radioStation.url).then((response) => {
         resolve(response);
@@ -81,7 +82,7 @@ export class RadioStationService {
     });
   }
 
-  async parseRadioStation(url): Promise<object> {
+  async parseRadioStation(url: string): Promise<object> {
     const { data } = await axios.get(url);
     const $ = cheerio.load(data);
     const radioStationData = $('.station');
