@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RadioStationModule } from './radio-station/radio-station.module';
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -17,6 +17,6 @@ import { ConfigModule } from "@nestjs/config";
       synchronize: true,
     }),
     RadioStationModule,
-  ]
+  ],
 })
 export class AppModule {}

@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ArrayContainedBy, ArrayContains, ArrayOverlap, In, Like, Repository } from "typeorm";
+import { Like, Repository } from 'typeorm';
 import { RadioStation } from './radio-station.entity';
-import axios from "axios";
-import cheerio from "cheerio";
+import axios from 'axios';
+import cheerio from 'cheerio';
 
 @Injectable()
 export class RadioStationService {
   private url = 'https://onlineradiobox.com';
 
-  constructor(@InjectRepository(RadioStation) private readonly radioStationRepository: Repository<RadioStation>) {}
+  constructor(
+    @InjectRepository(RadioStation)
+    private readonly radioStationRepository: Repository<RadioStation>,
+  ) {}
 
   async getByRadioId(radioId: number): Promise<RadioStation> {
     return this.radioStationRepository.findOneBy({ radioId });
@@ -20,12 +23,12 @@ export class RadioStationService {
     let parsedTags = '';
     splitTags.forEach((splitTag, index) => {
       if (index !== 0) parsedTags += ',';
-      parsedTags += `"${splitTag}"`
-    })
+      parsedTags += `"${splitTag}"`;
+    });
     console.log(parsedTags);
     return this.radioStationRepository.findBy({
-      tags: Like(`%${tags}%`)
-    })
+      tags: Like(`%${tags}%`),
+    });
   }
 
   async create(country) {
@@ -40,14 +43,14 @@ export class RadioStationService {
         imgUrl: 'https:',
         website: '',
         tags: [],
-        country: ''
+        country: '',
       };
       station.id = $(el).attr('radioid');
       const radioLink = $(el).children('figure').children('a');
       station.title = radioLink.children('.station__title__name').text();
       station.url += radioLink.attr('href');
       station.imgUrl += radioLink.children('.station__title__logo').attr('src');
-      this.response(station).then(res => {
+      this.response(station).then((res) => {
         const radioStation = new RadioStation();
         radioStation.radioId = res.id;
         radioStation.title = res.title;
@@ -58,24 +61,24 @@ export class RadioStationService {
         radioStation.country = res.country;
         console.log(radioStation);
         this.radioStationRepository.save(radioStation);
-      })
-    })
+      });
+    });
   }
 
   async response(radioStation) {
     return new Promise((resolve): any => {
       this.parseRadioStation(radioStation.url).then((response) => {
-        resolve(response)
-      })
+        resolve(response);
+      });
     }).then((response) => {
-      Object.entries(response).forEach(entry => {
+      Object.entries(response).forEach((entry) => {
         const [key, value] = entry;
         if (key === 'website') radioStation.website = value;
         else if (key === 'country') radioStation.country = value;
-        else value.forEach(tag => radioStation.tags.push(tag));
+        else value.forEach((tag) => radioStation.tags.push(tag));
       });
-      return radioStation
-    })
+      return radioStation;
+    });
   }
 
   async parseRadioStation(url): Promise<object> {
@@ -85,14 +88,18 @@ export class RadioStationService {
     const radioStation = {
       country: '',
       website: null,
-      tags: []
+      tags: [],
     };
     radioStation.country = $('.breadcrumbs li a span:first').text();
     radioStationData.each((i, el) => {
-      radioStation.website = $(el).find('.station__reference--web').attr('href');
-      $(el).find('.station__tags li').each((tagId, tagEl) => {
-        radioStation.tags.push($(tagEl).children('.ajax').text());
-      })
+      radioStation.website = $(el)
+        .find('.station__reference--web')
+        .attr('href');
+      $(el)
+        .find('.station__tags li')
+        .each((tagId, tagEl) => {
+          radioStation.tags.push($(tagEl).children('.ajax').text());
+        });
     });
     return radioStation;
   }

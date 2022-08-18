@@ -1,6 +1,14 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RadioStationService } from './radio-station.service';
-import { RadioStation } from "./radio-station.entity";
+import { RadioStation } from './radio-station.entity';
 
 @Controller('radio-station')
 export class RadioStationController {
@@ -12,7 +20,9 @@ export class RadioStationController {
   }
 
   @Get(':radioId')
-  async getByRadioId(@Param('radioId', ParseIntPipe) radioId: number): Promise<RadioStation> {
+  async getByRadioId(
+    @Param('radioId', ParseIntPipe) radioId: number,
+  ): Promise<RadioStation> {
     return this.radioStationService.getByRadioId(radioId);
   }
 
