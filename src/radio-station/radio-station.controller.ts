@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { RadioStationService } from './radio-station.service';
 import { RadioStation } from './radio-station.entity';
@@ -15,9 +17,10 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+  ApiTags, getSchemaPath
+} from "@nestjs/swagger";
 import { CreateRadioStationDto } from './dto/create-radio-station.dto';
+import e, { Response } from 'express';
 
 @ApiTags('radio stations')
 @Controller('radio-station')
@@ -40,10 +43,25 @@ export class RadioStationController {
     description: 'The radio stations has been successfully created.',
     type: [RadioStation],
   })
+  @ApiNotFoundResponse({
+    description: 'Radio stations by such country code was not found',
+  })
   async create(
-    @Body('country') createRadioStationDto: CreateRadioStationDto,
-  ): Promise<void> {
-    return await this.radioStationService.create(createRadioStationDto);
+    @Body() createRadioStationDto: CreateRadioStationDto,
+  ): Promise<object> {
+    const country = createRadioStationDto.country;
+    try {
+      await this.radioStationService.create(country);
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: `The radio stations by country code: ${country} created successfully!`,
+      };
+    } catch (e) {
+      return {
+        code: e.code,
+        message: e.message,
+      };
+    }
   }
 
   @Get(':radioId')

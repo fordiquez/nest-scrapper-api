@@ -9,6 +9,8 @@ export class CreateRadioStationDto {
     default: 'ua',
     isArray: false,
     required: true,
+    minLength: 2,
+    maxLength: 2,
   })
   @IsString()
   @IsNotEmpty()

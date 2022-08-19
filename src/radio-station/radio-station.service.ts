@@ -32,9 +32,10 @@ export class RadioStationService {
     });
   }
 
-  async create(country: CreateRadioStationDto) {
-    const { data } = await axios.get(this.url + `/${country}`);
-    const $ = cheerio.load(data);
+  async create(country: string) {
+    const axiosResponse = await axios.get(this.url + `/${country}`);
+    console.log(axiosResponse);
+    const $ = cheerio.load(axiosResponse.data);
     const stationsList = $('.stations-list .stations__station');
     stationsList.each((i, el) => {
       const station = {
