@@ -8,10 +8,19 @@ export class RadioStation {
   id: number;
 
   @Column()
-  radioId: number;
+  radioId: string;
 
   @Column()
   title: string;
+
+  @Column()
+  country: string;
+
+  @Column()
+  stream: string;
+
+  @Column()
+  website: string;
 
   @Column()
   url: string;
@@ -19,12 +28,6 @@ export class RadioStation {
   @Column()
   imgUrl: string;
 
-  @Column()
-  website: string;
-
   @Column('simple-array')
   tags: string[];
-
-  @Column()
-  country: string;
 }

@@ -4,7 +4,6 @@ import { Like, Repository } from 'typeorm';
 import { RadioStation } from './radio-station.entity';
 import axios from 'axios';
 import cheerio from 'cheerio';
-import { CreateRadioStationDto } from './dto/create-radio-station.dto';
 
 @Injectable()
 export class RadioStationService {
@@ -15,53 +14,52 @@ export class RadioStationService {
     private readonly radioStationRepository: Repository<RadioStation>,
   ) {}
 
-  async getByRadioId(radioId: number): Promise<RadioStation> {
+  async getByRadioId(radioId: string): Promise<RadioStation> {
     return this.radioStationRepository.findOneBy({ radioId });
   }
 
   async getByTags(tags: string): Promise<RadioStation[]> {
-    const splitTags = tags.split(',');
-    let parsedTags = '';
-    splitTags.forEach((splitTag, index) => {
-      if (index !== 0) parsedTags += ',';
-      parsedTags += `"${splitTag}"`;
-    });
-    console.log(parsedTags);
     return this.radioStationRepository.findBy({
       tags: Like(`%${tags}%`),
     });
   }
 
+  async getAll(): Promise<RadioStation[]> {
+    return this.radioStationRepository.find();
+  }
+
   async create(country: string) {
     const axiosResponse = await axios.get(this.url + `/${country}`);
-    console.log(axiosResponse);
     const $ = cheerio.load(axiosResponse.data);
     const stationsList = $('.stations-list .stations__station');
     stationsList.each((i, el) => {
       const station = {
-        id: null,
+        radioId: '',
         title: '',
+        country: '',
+        stream: '',
+        website: '',
         url: this.url,
         imgUrl: 'https:',
-        website: '',
         tags: [],
-        country: '',
       };
-      station.id = $(el).attr('radioid');
+      const playButton = $(el).children('.station_play');
+      station.radioId = playButton.attr('radioid');
+      station.stream = playButton.attr('stream');
       const radioLink = $(el).children('figure').children('a');
       station.title = radioLink.children('.station__title__name').text();
       station.url += radioLink.attr('href');
       station.imgUrl += radioLink.children('.station__title__logo').attr('src');
       this.response(station).then((res) => {
         const radioStation = new RadioStation();
-        radioStation.radioId = res.id;
+        radioStation.radioId = res.radioId;
         radioStation.title = res.title;
+        radioStation.country = res.country;
+        radioStation.stream = res.stream;
+        radioStation.website = res.website;
         radioStation.url = res.url;
         radioStation.imgUrl = res.imgUrl;
-        radioStation.website = res.website;
         radioStation.tags = res.tags;
-        radioStation.country = res.country;
-        console.log(radioStation);
         this.radioStationRepository.save(radioStation);
       });
     });

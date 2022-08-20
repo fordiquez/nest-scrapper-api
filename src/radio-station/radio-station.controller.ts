@@ -2,25 +2,25 @@ import {
   Body,
   Controller,
   Get,
-  HttpStatus,
   Param,
-  ParseIntPipe,
   Post,
   Query,
+  HttpStatus,
   Res,
 } from '@nestjs/common';
 import { RadioStationService } from './radio-station.service';
 import { RadioStation } from './radio-station.entity';
 import {
+  ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiTags, getSchemaPath
-} from "@nestjs/swagger";
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateRadioStationDto } from './dto/create-radio-station.dto';
-import e, { Response } from 'express';
+import { Response } from 'express';
 
 @ApiTags('radio stations')
 @Controller('radio-station')
@@ -43,7 +43,7 @@ export class RadioStationController {
     description: 'The radio stations has been successfully created.',
     type: [RadioStation],
   })
-  @ApiNotFoundResponse({
+  @ApiBadRequestResponse({
     description: 'Radio stations by such country code was not found',
   })
   async create(
@@ -65,26 +65,60 @@ export class RadioStationController {
   }
 
   @Get(':radioId')
-  @ApiOperation({ summary: 'Gets all radio stations by radio ID' })
+  @ApiOperation({ summary: 'Gets radio station by radio ID' })
   @ApiOkResponse({
     description: 'Radio station retrieved successfully',
     type: RadioStation,
   })
   @ApiNotFoundResponse({ description: 'Radio station not found' })
   async getByRadioId(
-    @Param('radioId', ParseIntPipe) radioId: number,
-  ): Promise<RadioStation> {
-    return this.radioStationService.getByRadioId(radioId);
+    @Param('radioId') radioId: string,
+    @Res() res: Response,
+  ): Promise<Promise<object> | Promise<RadioStation[]>> {
+    try {
+      const radioStation = await this.radioStationService.getByRadioId(radioId);
+      if (!radioStation)
+        return res.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Radio station with such radio ID was not found',
+        });
+      return res.json(radioStation);
+    } catch (e) {
+      return {
+        code: e.code,
+        message: e.message,
+      };
+    }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Gets all radio stations by tags' })
+  @ApiOperation({
+    summary: 'Gets radio stations by tag(s) or retrieve all available',
+  })
   @ApiOkResponse({
     description: 'Radio stations retrieved successfully',
     type: [RadioStation],
   })
-  @ApiNotFoundResponse({ description: 'Radio stations not found' })
-  async getByTags(@Query('tags') tags: string): Promise<RadioStation[]> {
-    return this.radioStationService.getByTags(tags);
+  @ApiNotFoundResponse({ description: 'Radio stations was not found' })
+  async getByTags(
+    @Query('tags') tags: string,
+    @Res() res: Response,
+  ): Promise<Promise<object> | Promise<RadioStation[]>> {
+    try {
+      const radioStations = !tags
+        ? await this.radioStationService.getAll()
+        : await this.radioStationService.getByTags(tags);
+      if (!radioStations.length)
+        return res.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'None radio station was not found',
+        });
+      return res.json(radioStations);
+    } catch (e) {
+      return {
+        code: e.code,
+        message: e.message,
+      };
+    }
   }
 }
