@@ -5,9 +5,9 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
-  HttpStatus,
   Get,
   Param,
+  HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
 import {
@@ -25,7 +25,6 @@ import { Response } from 'express';
 import { Image } from './image.entity';
 import { CreateImageDto } from './dto/create-image.dto';
 import { ImageService } from './image.service';
-import { RadioStation } from '../radio-station/radio-station.entity';
 
 @ApiTags('Images')
 @Controller('image')
@@ -59,10 +58,10 @@ export class ImageController {
     @Res() res: Response,
   ): Promise<Response> {
     try {
-      const errors = this.imageService.imageValidation(
-        dimensions,
-        file.mimetype,
-      );
+      const fileErrors = this.imageService.validateFile(file.mimetype);
+      const dimensionErrors = this.imageService.validateDimensions(dimensions);
+      const errors = this.imageService.parseErrors(fileErrors, dimensionErrors);
+
       if (!errors.length) {
         const image = await this.imageService.uploadImage(
           file.buffer,
@@ -70,12 +69,14 @@ export class ImageController {
           dimensions,
         );
         return res.json(image);
+      } else {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          code: HttpStatus.BAD_REQUEST,
+          message: errors,
+        });
       }
-      return res.status(HttpStatus.BAD_REQUEST).json({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: errors.length > 1 ? errors : errors[0],
-      });
     } catch (e) {
+      console.log(e);
       return res.status(HttpStatus.BAD_REQUEST).json({
         code: e.code,
         message: e.message,

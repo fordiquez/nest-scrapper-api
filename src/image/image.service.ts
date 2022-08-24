@@ -5,6 +5,7 @@ import { S3 } from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
 import * as sharp from 'sharp';
 import { Image } from './image.entity';
+import * as Joi from 'joi';
 
 @Injectable()
 export class ImageService {
@@ -20,7 +21,10 @@ export class ImageService {
     filename: string,
     dimensions: object,
   ): Promise<Image> {
-    const resizedBuffer = await this.resize(dataBuffer, dimensions);
+    const hasDimensions = this.validateBody(dimensions);
+    const resizedBuffer = !hasDimensions
+      ? await this.resize(dataBuffer)
+      : await this.resize(dataBuffer, dimensions);
     const originalImage = await this.awsUpload(dataBuffer, filename);
     const resizedImage = await this.awsUpload(resizedBuffer, filename);
 
@@ -52,7 +56,7 @@ export class ImageService {
       .toBuffer();
   }
 
-  async awsUpload(dataBuffer, filename) {
+  async awsUpload(dataBuffer: Buffer, filename: string): Promise<any> {
     const s3 = new S3();
     return await s3
       .upload({
@@ -63,35 +67,47 @@ export class ImageService {
       .promise();
   }
 
-  imageValidation(dimensions: object, mimetype: string): any[] {
-    const errors = [];
-    const MIN_WIDTH = 480;
-    const MIN_HEIGHT = 360;
-    const MAX_SIZE = 65535;
-    const types = mimetype.split('/');
-    const imagesTypes = ['jpeg', 'jpg', 'png', 'webp'];
-    if (types[0] !== 'image' || !imagesTypes.includes(types[1]))
-      errors.push('File do not accept this type!');
-    if (!dimensions || Object.keys(dimensions).length === 0)
-      errors.push('Not recognized dimension properties!');
+  validateBody(dimensions: object): boolean {
+    let isValidated = true;
+    if (!dimensions || Object.keys(dimensions).length !== 2)
+      isValidated = false;
     const keys = ['width', 'height'];
-    Object.entries(dimensions).forEach(([key, value]) => {
-      if (!keys.includes(key)) errors.push(`Property: ${key} is not accepted!`);
-      if (isNaN(parseInt(value)))
-        errors.push(`${value} of ${key} property must be compatible with Int`);
-      else if (parseInt(value) > MAX_SIZE)
-        errors.push(
-          `The maximum ${key} of image can not be more than ${MAX_SIZE}px`,
-        );
-      else if (key === keys[0] && parseInt(value) < MIN_WIDTH)
-        errors.push(
-          `The minimum ${key} of image can not be lower than ${MIN_WIDTH}px`,
-        );
-      else if (key === keys[1] && parseInt(value) < MIN_HEIGHT)
-        errors.push(
-          `The minimum ${key} of image can not be lower than ${MIN_HEIGHT}px`,
-        );
+    Object.keys(dimensions).forEach((key) => {
+      if (!keys.includes(key)) isValidated = false;
     });
+    return isValidated;
+  }
+
+  validateDimensions(dimensions: object): object {
+    const schema = Joi.object().keys({
+      width: Joi.number().min(480).max(65535),
+      height: Joi.number().min(360).max(65535),
+    });
+
+    return schema.validate(dimensions);
+  }
+
+  validateFile(mimetype: string): object {
+    const file = { mimetype };
+    const schema = Joi.object().keys({
+      mimetype: Joi.string().valid(
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ),
+    });
+
+    return schema.validate(file);
+  }
+
+  parseErrors(fileErrors, dimensionErrors): any[] {
+    const errors = [];
+
+    if (fileErrors.error !== undefined) errors.push(fileErrors.error.message);
+    if (dimensionErrors.error !== undefined)
+      errors.push(dimensionErrors.error.message);
+
     return errors;
   }
 }
