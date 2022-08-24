@@ -48,14 +48,15 @@ export class RadioStationController {
   })
   async create(
     @Body() createRadioStationDto: CreateRadioStationDto,
-  ): Promise<object> {
+    @Res() res: Response,
+  ): Promise<Response | object> {
     const country = createRadioStationDto.country;
     try {
       await this.radioStationService.create(country);
-      return {
+      return res.status(HttpStatus.CREATED).json({
         statusCode: HttpStatus.CREATED,
         message: `The radio stations by country code: ${country} created successfully!`,
-      };
+      });
     } catch (e) {
       return {
         code: e.code,
@@ -74,7 +75,7 @@ export class RadioStationController {
   async getByRadioId(
     @Param('radioId') radioId: string,
     @Res() res: Response,
-  ): Promise<Promise<object> | Promise<RadioStation[]>> {
+  ): Promise<Response | object> {
     try {
       const radioStation = await this.radioStationService.getByRadioId(radioId);
       if (!radioStation)
@@ -103,7 +104,7 @@ export class RadioStationController {
   async getByTags(
     @Query('tags') tags: string,
     @Res() res: Response,
-  ): Promise<Promise<object> | Promise<RadioStation[]>> {
+  ): Promise<Response | object> {
     try {
       const radioStations = !tags
         ? await this.radioStationService.getAll()
